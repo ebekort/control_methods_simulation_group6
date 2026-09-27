@@ -9,7 +9,7 @@ setup(
     description="Repository for Classic and Reinforcement learning based control of the UR7e",
     author="Robin Moret",
     author_email="r.l.moret@student.rug.nl",
-    packages=["ur_simulation"],
+    packages=["ur_simulation", "experiments"],
     include_package_data=True,
     package_data={
         "ur_simulation": ["version.txt", "assets/**/*"],

@@ -5,25 +5,9 @@ import pybullet as p
 from ur_simulation.classic_control.robots.ur7e import UR7e
 from ur_simulation.pybullet import PyBullet
 from ur_simulation.classic_control.robot_state.pybullet_robot_state import JointType
-
-
-def create_scene():
-    # initializing robot scene with start position
-    init_joint_angles = np.array([1.57, -1.7, 2.4, -1.57, -1.57, -1.57])
-    robot = UR7e(
-        block_gripper=True,
-        neutral_joints=init_joint_angles,
-    )
-    robot.sim.create_plane(0)
-
-    robot.sim.create_box(
-        body_name="contact_object",
-        half_extents=np.array([0.04, 0.04, 0.04]),
-        mass=0.15,
-        position= np.array([0.4, 0.1, 0.1]),
-        rgba_color=np.array([0.95, 0.55, 0.15, 1.0]),
-    )
-    return robot
+import sys
+from experiments.external_force import create_scene as create_scene_external
+from experiments.free_space import create_scene as create_scene_free
 
 def torques(jacobian, F):
     """Compute joint torques from the Jacobian and a force vector."""
@@ -51,22 +35,35 @@ def compute_y(x_doubledot_d, M_d, K_d, K_p, e_dot, e, F_c):
 
 
 
-def compute_workspace_matrices(dynamics, J, J_dot, q_dot):
-    M_q = dynamics.mass_matrix
-    c_q = dynamics.coriolis_vector
-    g_q = dynamics.gravity_vector
+def compute_workspace_matrices(
+    dynamics, J, J_dot, q_dot
+):
+    M_q = np.asarray(dynamics.mass_matrix, dtype=float)
+    c_q = np.asarray(dynamics.coriolis_vector, dtype=float)
+    g_q = np.asarray(dynamics.gravity_vector, dtype=float)
+
+    J = np.asarray(J, dtype=float)
+    J_dot = np.asarray(J_dot, dtype=float)
+    q_dot = np.asarray(q_dot, dtype=float)
+
+    # M^-1 J^T, without explicitly computing M^-1
+    M_inv_JT = np.linalg.solve(M_q, J.T)
 
     # M_hat = (J M^-1 J^T)^-1
-    M_inv_JT = np.linalg.inv(M_q) @ J.T
-    M_hat = np.linalg.inv(J @ M_inv_JT)
+    lambda_inv = J @ M_inv_JT
+    M_hat = np.linalg.solve(
+        lambda_inv,
+        np.eye(lambda_inv.shape[0])
+    )
 
-    c_hat_xdot = (
-        np.linalg.solve(J.T, c_q)
-        - M_hat @ J_dot @ q_dot
-)
+    # C_hat * x_dot
+    c_hat_xdot = M_hat @ (
+        J @ np.linalg.solve(M_q, c_q)
+        - J_dot @ q_dot
+    )
 
-    # g_hat = M_hat J M^-1 g_q = J_-T g_q
-    g_hat = np.linalg.inv(J.T) @ g_q
+    # g_hat
+    g_hat = M_hat @ J @ np.linalg.solve(M_q, g_q)
 
     return M_hat, c_hat_xdot, g_hat
 
@@ -89,6 +86,9 @@ def compute_es(x, x_dot, x_doubledot, x_d, x_dot_d, x_doubledot_d):
     x_doubledot_d = np.asarray(x_doubledot_d, dtype=float)
 
     e = x_d - x
+
+    e[3:] = (e[3:] + np.pi) % (2 * np.pi) - np.pi  # Wrap orientation error to [-pi, pi]
+
     e_dot = x_dot_d - x_dot
     e_doubledot = x_doubledot_d - x_doubledot
 
@@ -102,11 +102,6 @@ def compute_F_c(robot, tau_applied, J_A):
         robot.robot_state.get_external_joint_forces(tau_applied),
         dtype=float,
     )
-
-    if jacobian.shape[1] != tau_external.size:
-        raise ValueError(
-            "Jacobian joint dimension must match the external joint torque vector"
-        )
 
     # tau_external ~= J.T @ F_c; least squares also handles non-square Jacobians.
     F_c = np.linalg.lstsq(J_A.T, tau_external, rcond=None)[0]
@@ -155,7 +150,13 @@ def geometric_to_analytic_jacobian(J_G, euler):
     return J_A
 
 def run():
-    robot = create_scene()
+    if len(sys.argv) > 1 and sys.argv[1] == "external_force":
+        robot = create_scene_external()
+    elif len(sys.argv) > 1 and sys.argv[1] == "free_space":
+        robot = create_scene_free()
+    else:
+        print("sys must have one argument: 'external_force' or 'free_space'")
+        quit()
 
     M_d = np.diag([1.0, 1.0, 1.0, 1.0, 1.0, 1.0])  # Desired mass matrix
     K_d = np.diag([10.0, 10.0, 10.0, 1.0, 1.0, 1.0])  # Desired damping matrix
@@ -180,8 +181,6 @@ def run():
         ))
         # print(x)
         # print(x.shape)
-        if previous_J_A is None:
-            previous_J_A = np.zeros((6, 6))
 
         J_G = robot.robot_model.get_jacobian()
         J_A = geometric_to_analytic_jacobian(J_G, x[3:])
