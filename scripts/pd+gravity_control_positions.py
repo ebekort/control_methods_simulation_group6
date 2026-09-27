@@ -127,22 +127,22 @@ def plots():
     fig, axes = plt.subplots(5, 1, sharex=True, figsize=(8, 10))
     fig.suptitle('kp/kd (diag([2, 2, 2, 2, 2, 5])) capped')
     axes[0].plot(eq_last_log)
-    axes[0].set_ylabel("eq[-1]")
+    axes[0].set_ylabel('eq[-1]')
 
     axes[1].plot(qd_last_log)
-    axes[1].set_ylabel("qd[-1]")
+    axes[1].set_ylabel('qd[-1]')
 
     axes[2].plot(q_last_log)
-    axes[2].set_ylabel("q[-1]")
-    axes[2].axhline(np.pi, color="gray", linestyle="--", linewidth=0.5)
-    axes[2].axhline(-np.pi, color="gray", linestyle="--", linewidth=0.5)
+    axes[2].set_ylabel('q[-1]')
+    axes[2].axhline(np.pi, color='gray', linestyle='--', linewidth=0.5)
+    axes[2].axhline(-np.pi, color='gray', linestyle='--', linewidth=0.5)
 
     axes[3].plot(qdot_last_log)
-    axes[3].set_ylabel("qdot[-1]")
+    axes[3].set_ylabel('qdot[-1]')
 
     axes[4].plot(ee_error_log)
-    axes[4].set_ylabel("linalg pos distance")
-    axes[4].set_xlabel("sim step")
+    axes[4].set_ylabel('linalg pos distance')
+    axes[4].set_xlabel('sim step')
 
     plt.tight_layout()
     plt.show()
@@ -152,5 +152,5 @@ def plots():
     plt.show()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     run()

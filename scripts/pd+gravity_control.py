@@ -28,8 +28,8 @@ def run():
     target_pos = [0.45, 0.45, 0.45]
 
     robot.sim.create_box(
-        'box', np.array([0.1, 0.1, 0.1]), 1, target_pos,
-        rgba_color=[0, 1, 0, 1]
+        'box', np.array([0.01, 0.01, 0.01]), 0, target_pos,
+        rgba_color=[0, 1, 0, 1], ghost=True
     )
 
     kp = np.diag([5, 5, 5, 5, 5, 5])
