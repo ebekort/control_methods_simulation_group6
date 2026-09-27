@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: ur_simulation
+Version: 0.0.1
+Summary: Repository for Classic and Reinforcement learning based control of the UR7e
+Author: Robin Moret
+Author-email: r.l.moret@student.rug.nl
+Requires-Dist: pybullet
+Requires-Dist: numpy>=2
+Dynamic: author
+Dynamic: author-email
+Dynamic: requires-dist
+Dynamic: summary
