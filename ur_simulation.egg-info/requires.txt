@@ -1,2 +1,0 @@
-pybullet
-numpy>=2

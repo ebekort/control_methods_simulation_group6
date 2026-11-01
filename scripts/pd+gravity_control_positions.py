@@ -1,11 +1,23 @@
-import argparse
-import time
+'''
+`pd+gravity_control.py` but moves through `target_pos`s, moves onto the next
+after reaching the position and fulfilling the conditions of reaching near 0
+velocities and near 0 workspace position error:
+
+```
+    not np.allclose(
+        target_pos, robot.robot_state.get_end_effector_position(),
+        atol=1e-01
+    )
+    or not np.allclose(qdot, np.zeros_like(qdot), atol=1e-03)
+```
+
+Usage:
+
+    python scripts/pd+gravity_control_positions.py
+'''
 import numpy as np
 import pybullet as p
 from ur_simulation.classic_control.robots.ur7e import UR7e
-from ur_simulation.pybullet import PyBullet
-from ur_simulation.classic_control.robot_state.pybullet_robot_state import JointType
-
 import matplotlib.pyplot as plt
 
 
@@ -16,7 +28,9 @@ def create_scene():
         neutral_joints=init_joint_angles,
     )
     robot.sim.create_plane(0)
-    robot.sim.physics_client.configureDebugVisualizer(p.COV_ENABLE_MOUSE_PICKING, True)
+    robot.sim.physics_client.configureDebugVisualizer(
+        p.COV_ENABLE_MOUSE_PICKING, True
+    )
     return robot
 
 
@@ -59,7 +73,10 @@ def run():
         # until end effector position is close enough to the target pos
         # and its velocities are small enough
         while (
-            not np.allclose(target_pos, robot.robot_state.get_end_effector_position(), atol=1e-01)
+            not np.allclose(
+                target_pos, robot.robot_state.get_end_effector_position(),
+                atol=1e-01
+            )
             or not np.allclose(qdot, np.zeros_like(qdot), atol=1e-03)
         ):
             gravity = robot.robot_model.get_dynamics().gravity_vector

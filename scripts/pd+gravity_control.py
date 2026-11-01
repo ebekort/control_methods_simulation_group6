@@ -1,10 +1,23 @@
-import argparse
-import time
+'''
+PD+gravity regulation with the exact gravity from PyBullet (model-based,
+free motion)
+
+    u = G(q) + K_P e - K_D qd,      e = q_ref - q wrapped to [-pi, pi]
+
+q_ref comes from inverse kinematics for a target end-effector position
+(green ghost box at (0.45, 0.45, 0.45)) at the start orientation, with
+K_P = K_D = diag(5). Gravity is evaluated at the current q. Opens the GUI
+and runs until the window is closed; no command-line options.
+
+Note: with K_D = 5 the last joint (inertia 4.4e-4 kg m^2) is not stable
+and spins; see pd+gravity_control_positions.py and pinn_control.py, which
+uses 0.3 on that joint.
+
+    python scripts/pd+gravity_control.py
+'''
 import numpy as np
 import pybullet as p
 from ur_simulation.classic_control.robots.ur7e import UR7e
-from ur_simulation.pybullet import PyBullet
-from ur_simulation.classic_control.robot_state.pybullet_robot_state import JointType
 
 
 def create_scene():
@@ -14,7 +27,9 @@ def create_scene():
         neutral_joints=init_joint_angles,
     )
     robot.sim.create_plane(0)
-    robot.sim.physics_client.configureDebugVisualizer(p.COV_ENABLE_MOUSE_PICKING, True)
+    robot.sim.physics_client.configureDebugVisualizer(
+        p.COV_ENABLE_MOUSE_PICKING, True
+    )
     return robot
 
 
@@ -37,6 +52,7 @@ def run():
 
     target_rot = robot.robot_state.get_end_effector_orientation()
     qd = robot.robot_model.get_inverse_kinematics(target_pos, target_rot)
+    print(qd)
     while True:
         gravity = robot.robot_model.get_dynamics().gravity_vector
         q = robot.robot_state.get_joint_angles()
